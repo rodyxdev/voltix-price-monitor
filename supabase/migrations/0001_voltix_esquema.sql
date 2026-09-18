@@ -107,7 +107,9 @@ create policy voltix_disparos_lectura
 revoke insert, update, delete, truncate, references, trigger
   on public.voltix_productos, public.voltix_historial_precios, public.voltix_disparos
   from anon, authenticated;
-revoke insert, update, delete on public.voltix_ultimos_precios from anon, authenticated;
+-- La vista también hereda los privilegios por defecto (TRUNCATE, TRIGGER,
+-- REFERENCES...): se retiran todos y abajo se concede solo SELECT.
+revoke all on public.voltix_ultimos_precios from anon, authenticated;
 
 grant select
   on public.voltix_productos, public.voltix_historial_precios, public.voltix_disparos,

@@ -40,7 +40,11 @@ jobs:
           faltan=""
           [ -z "${SUPABASE_URL}" ] && faltan="${faltan} SUPABASE_URL(secret)"
           [ -z "${SUPABASE_SERVICE_ROLE_KEY}" ] && faltan="${faltan} SUPABASE_SERVICE_ROLE_KEY(secret)"
-          [ -z "${VOLTIX_COMPETIDORES_URL}" ] && faltan="${faltan} VOLTIX_COMPETIDORES_URL(variable)"
+          # Un placeholder (p. ej. PENDIENTE_FASE_3) cuenta como no configurado.
+          case "${VOLTIX_COMPETIDORES_URL}" in
+            http://*|https://*) ;;
+            *) faltan="${faltan} VOLTIX_COMPETIDORES_URL(variable)" ;;
+          esac
           if [ -n "${faltan}" ]; then
             if [ "${GITHUB_EVENT_NAME}" = "schedule" ]; then
               echo "::warning::Monitoreo omitido, falta configurar:${faltan}"
