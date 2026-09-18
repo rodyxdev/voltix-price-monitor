@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voltix | Monitor de precios de competencia</title>
+  <meta name="description" content="Dashboard de Voltix para monitorear los precios de GigaBazar y ElectroExpress.">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header__inner">
+      <div>
+        <p class="logo">Voltix</p>
+        <p class="logo-sub">Monitor de precios de competencia</p>
+      </div>
+      <p class="ultimo-check">
+        Último monitoreo:
+        <strong id="ultimo-monitoreo">—</strong>
+      </p>
+    </div>
+  </header>
+
+  <main>
+    <!-- Resumen -->
+    <section class="kpis" aria-label="Resumen del último monitoreo">
+      <article class="kpi">
+        <p class="kpi__valor" id="kpi-productos">—</p>
+        <p class="kpi__label">Productos monitoreados</p>
+      </article>
+      <article class="kpi">
+        <p class="kpi__valor kpi__valor--baja" id="kpi-bajas">—</p>
+        <p class="kpi__label">Bajaron de precio</p>
+      </article>
+      <article class="kpi">
+        <p class="kpi__valor kpi__valor--alza" id="kpi-alzas">—</p>
+        <p class="kpi__label">Subieron de precio</p>
+      </article>
+      <article class="kpi">
+        <p class="kpi__valor" id="kpi-mas-barato">—</p>
+        <p class="kpi__label">Productos donde Voltix no es el más barato</p>
+      </article>
+    </section>
+
+    <!-- Acciones -->
+    <section class="acciones">
+      <button id="btn-monitoreo" class="btn btn--primario" type="button">
+        Ejecutar monitoreo ahora
+      </button>
+      <p class="acciones__nota" id="estado-monitoreo">
+        El monitoreo automático corre todos los días a las 7:00 a. m.
+      </p>
+    </section>
+
+    <!-- Tabla comparativa -->
+    <section class="panel">
+      <div class="panel__head">
+        <h2>Comparativa de precios</h2>
+        <p class="panel__nota">
+          Datos de ejemplo. En la Fase 2 se reemplazan por las lecturas reales del scraper.
+        </p>
+      </div>
+
+      <div class="tabla-wrap">
+        <table class="tabla-precios">
+          <thead>
+            <tr>
+              <th scope="col">Producto</th>
+              <th scope="col">Categoría</th>
+              <th scope="col" class="num">Voltix</th>
+              <th scope="col" class="num">GigaBazar</th>
+              <th scope="col" class="num">ElectroExpress</th>
+              <th scope="col">Posición</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-body">
+            <tr>
+              <td colspan="6" class="vacio">Cargando datos de ejemplo…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="leyenda">
+        <span class="tendencia tendencia--baja">▼ bajó</span>
+        <span class="tendencia tendencia--alza">▲ subió</span>
+        <span class="tendencia tendencia--igual">= sin cambio</span>
+        <span class="leyenda__nota">respecto al monitoreo anterior</span>
+      </p>
+    </section>
+
+    <!-- Reportes -->
+    <section class="panel">
+      <div class="panel__head">
+        <h2>Reportes</h2>
+        <p class="panel__nota">
+          La generación real de archivos llega en la Fase 2.
+        </p>
+      </div>
+
+      <ul class="reportes">
+        <li class="reporte">
+          <div>
+            <p class="reporte__nombre">Comparativa semanal</p>
+            <p class="reporte__meta">Excel · semana del 8 al 14 de septiembre</p>
+          </div>
+          <button class="btn btn--secundario" type="button" data-reporte="excel-semanal" disabled>
+            Descargar Excel
+          </button>
+        </li>
+        <li class="reporte">
+          <div>
+            <p class="reporte__nombre">Resumen ejecutivo</p>
+            <p class="reporte__meta">PDF · semana del 8 al 14 de septiembre</p>
+          </div>
+          <button class="btn btn--secundario" type="button" data-reporte="pdf-semanal" disabled>
+            Descargar PDF
+          </button>
+        </li>
+        <li class="reporte">
+          <div>
+            <p class="reporte__nombre">Histórico del mes</p>
+            <p class="reporte__meta">Excel · septiembre 2026</p>
+          </div>
+          <button class="btn btn--secundario" type="button" data-reporte="excel-mensual" disabled>
+            Descargar Excel
+          </button>
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>Voltix · Fase 1 — cascarón estático con datos de ejemplo.</p>
+  </footer>
+
+  <script src="js/datos-ejemplo.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

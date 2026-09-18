@@ -1,0 +1,109 @@
+/* ElectroExpress - hoja de estilos unica, mobile-first, sin dependencias externas */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  color: #2b2b2b;
+  background: #fbf8f4;
+  line-height: 1.5;
+}
+a { color: inherit; }
+.site-header {
+  background: #0f766e;
+  color: #f7fdfb;
+  padding: 1rem 1rem 1.25rem;
+}
+.site-header a { text-decoration: none; }
+.brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+.tagline { margin: .25rem 0 0; font-size: .85rem; opacity: .85; }
+.claim {
+  margin-top: .85rem;
+  display: inline-block;
+  background: #f7fdfb;
+  color: #0f766e;
+  font-size: .78rem;
+  font-weight: 600;
+  padding: .35rem .7rem;
+  border-radius: 14px;
+}
+main { padding: 1.25rem 1rem 2.5rem; max-width: 1080px; margin: 0 auto; }
+h2 { font-size: 1.15rem; margin: 0 0 .25rem; }
+.section-note { margin: 0 0 1.25rem; font-size: .85rem; color: #7a7268; }
+.product-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.product-card {
+  background: #ffffff;
+  border: 1px solid #e7ded2;
+  border-radius: 14px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+.product-category {
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #7a7268;
+}
+.product-name { font-size: 1rem; font-weight: 600; margin: 0; }
+.product-name a { text-decoration: none; }
+.product-price { font-size: 1.3rem; font-weight: 700; color: #0f766e; margin: .2rem 0 0; }
+.product-stock { font-size: .8rem; font-weight: 600; }
+.product-stock[data-stock="agotado"] { color: #9f1239; }
+.product-stock[data-stock="pocas-piezas"] { color: #a16207; }
+.product-stock[data-stock="en-stock"] { color: #0f766e; }
+.product-sku { font-size: .72rem; color: #7a7268; }
+.product-link {
+  margin-top: .5rem;
+  font-size: .85rem;
+  font-weight: 600;
+  color: #0f766e;
+  text-decoration: none;
+}
+.breadcrumb { font-size: .8rem; margin: 0 0 1rem; color: #7a7268; }
+.product-detail {
+  background: #ffffff;
+  border: 1px solid #e7ded2;
+  border-radius: 14px;
+  padding: 1.25rem;
+}
+.product-detail .product-name { font-size: 1.35rem; }
+.product-description { font-size: .92rem; color: #2b2b2b; }
+.buy-button {
+  display: inline-block;
+  margin-top: 1rem;
+  background: #0f766e;
+  color: #ffffff;
+  border: none;
+  border-radius: 14px;
+  padding: .7rem 1.2rem;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.site-footer {
+  border-top: 1px solid #e7ded2;
+  padding: 1.25rem 1rem 2rem;
+  font-size: .78rem;
+  color: #7a7268;
+  text-align: center;
+}
+@media (min-width: 600px) {
+  .product-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 900px) {
+  .product-grid { grid-template-columns: repeat(3, 1fr); }
+  main { padding-top: 2rem; }
+}

@@ -1,0 +1,35 @@
+# Dependencias
+node_modules/
+__pycache__/
+.venv/
+venv/
+*.egg-info/
+
+# Entornos y secretos
+*.env*
+.env
+
+# Bases de datos locales
+*.sqlite*
+*.db
+
+# Respaldos y temporales
+*.bak
+*.backup
+*~
+*.tmp
+*.log
+
+# Salidas generadas (reportes de fases posteriores)
+/reports/
+*.xlsx
+*.pdf
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Config local de Claude Code (launch.json del panel de preview)
+.claude/

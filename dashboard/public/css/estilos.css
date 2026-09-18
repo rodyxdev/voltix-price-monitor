@@ -1,0 +1,222 @@
+/* Voltix dashboard - mobile-first, sin frameworks. */
+:root {
+  --fondo: #f5f7fa;
+  --superficie: #ffffff;
+  --borde: #e2e8f0;
+  --texto: #10151f;
+  --texto-suave: #64748b;
+  --marca: #6d28d9;
+  --marca-oscura: #4c1d95;
+  --ok: #15803d;
+  --alerta: #b91c1c;
+  --aviso: #b45309;
+  --radio: 10px;
+  --sombra: 0 1px 2px rgba(16, 21, 31, .06), 0 4px 12px rgba(16, 21, 31, .04);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+}
+
+/* Cabecera */
+.app-header {
+  background: linear-gradient(135deg, var(--marca), var(--marca-oscura));
+  color: #fff;
+  padding: 1.1rem 1rem;
+}
+.app-header__inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+.logo { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -.02em; }
+.logo-sub { margin: .1rem 0 0; font-size: .85rem; opacity: .85; }
+.ultimo-check { margin: 0; font-size: .82rem; opacity: .9; }
+
+main { max-width: 1120px; margin: 0 auto; padding: 1.25rem 1rem 2.5rem; }
+
+/* KPIs */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+}
+.kpi {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  padding: .9rem;
+}
+.kpi__valor { margin: 0; font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
+.kpi__valor--baja { color: var(--ok); }
+.kpi__valor--alza { color: var(--alerta); }
+.kpi__label { margin: .3rem 0 0; font-size: .78rem; color: var(--texto-suave); }
+
+/* Acciones */
+.acciones {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  margin-bottom: 1.25rem;
+}
+.acciones__nota { margin: 0; font-size: .8rem; color: var(--texto-suave); }
+
+.btn {
+  border: none;
+  border-radius: var(--radio);
+  font-size: .95rem;
+  font-weight: 600;
+  padding: .8rem 1.2rem;
+  cursor: pointer;
+}
+.btn--primario { background: var(--marca); color: #fff; width: 100%; }
+.btn--primario:hover:not(:disabled) { background: var(--marca-oscura); }
+.btn--secundario {
+  background: var(--superficie);
+  color: var(--marca);
+  border: 1px solid var(--borde);
+  font-size: .85rem;
+  padding: .55rem .9rem;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Paneles */
+.panel {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+}
+.panel__head { margin-bottom: .9rem; }
+.panel h2 { margin: 0; font-size: 1.05rem; }
+.panel__nota { margin: .2rem 0 0; font-size: .8rem; color: var(--texto-suave); }
+
+/* Tabla: tarjetas en móvil, tabla real en escritorio */
+.tabla-precios { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.tabla-precios thead { display: none; }
+.tabla-precios tr {
+  display: block;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: .75rem;
+  margin-bottom: .75rem;
+}
+.tabla-precios td, .tabla-precios th {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: .5rem;
+  padding: .2rem 0;
+  text-align: left;
+  border: none;
+}
+.tabla-precios td::before {
+  content: attr(data-label);
+  font-size: .75rem;
+  color: var(--texto-suave);
+}
+.producto { flex-direction: column; align-items: flex-start; margin-bottom: .35rem; }
+.producto__nombre { font-weight: 600; }
+.producto__sku { font-size: .72rem; color: var(--texto-suave); font-weight: 400; }
+.categoria { color: var(--texto-suave); }
+
+.precio { font-variant-numeric: tabular-nums; font-weight: 600; }
+.precio--propio { color: var(--marca); }
+.precio--menor { color: var(--alerta); }
+.stock { font-size: .72rem; color: var(--texto-suave); }
+
+.tendencia { font-size: .8rem; font-weight: 700; }
+.tendencia--baja { color: var(--ok); }
+.tendencia--alza { color: var(--alerta); }
+.tendencia--igual { color: var(--texto-suave); }
+
+.badge {
+  display: inline-block;
+  font-size: .72rem;
+  font-weight: 600;
+  padding: .2rem .5rem;
+  border-radius: 999px;
+}
+.badge--ok { background: #dcfce7; color: var(--ok); }
+.badge--neutro { background: #e2e8f0; color: var(--texto-suave); }
+.badge--alerta { background: #fee2e2; color: var(--alerta); }
+
+.vacio { color: var(--texto-suave); justify-content: center; }
+.vacio::before { content: none; }
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  align-items: center;
+  margin: .5rem 0 0;
+  font-size: .78rem;
+}
+.leyenda__nota { color: var(--texto-suave); }
+
+/* Reportes */
+.reportes { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+.reporte {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: .75rem;
+}
+.reporte__nombre { margin: 0; font-weight: 600; font-size: .92rem; }
+.reporte__meta { margin: .15rem 0 0; font-size: .76rem; color: var(--texto-suave); }
+
+.app-footer {
+  border-top: 1px solid var(--borde);
+  padding: 1.25rem 1rem 2rem;
+  text-align: center;
+  font-size: .78rem;
+  color: var(--texto-suave);
+}
+
+@media (min-width: 720px) {
+  .app-header__inner { flex-direction: row; align-items: flex-end; justify-content: space-between; }
+  .kpis { grid-template-columns: repeat(4, 1fr); }
+  .acciones { flex-direction: row; align-items: center; gap: 1rem; }
+  .btn--primario { width: auto; }
+  .panel { padding: 1.25rem; }
+
+  .tabla-precios thead { display: table-header-group; }
+  .tabla-precios tr { display: table-row; border: none; padding: 0; margin: 0; }
+  .tabla-precios thead th {
+    display: table-cell;
+    font-size: .74rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--texto-suave);
+    padding: .5rem .6rem;
+    border-bottom: 1px solid var(--borde);
+  }
+  .tabla-precios tbody td, .tabla-precios tbody th {
+    display: table-cell;
+    padding: .7rem .6rem;
+    border-bottom: 1px solid var(--borde);
+    vertical-align: top;
+  }
+  .tabla-precios td::before { content: none; }
+  .tabla-precios .num, .tabla-precios th.num { text-align: right; }
+  .tabla-precios tbody .num .precio,
+  .tabla-precios tbody .num .tendencia { margin-left: .3rem; }
+  .tabla-precios tbody .num .stock { display: block; }
+  .producto__sku { display: block; }
+}
