@@ -1,0 +1,8 @@
+# Solo se publica lo necesario en runtime: api/, src/, public/, server.js, package*.json.
+test/
+README.md
+
+# Cualquier archivo de entorno, a cualquier profundidad.
+.env
+.env*
+*env*

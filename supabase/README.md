@@ -9,13 +9,15 @@ En el panel de Supabase → **SQL Editor**, pega y ejecuta en orden:
 
 1. `migrations/0001_voltix_esquema.sql`: tablas, vista, RLS y privilegios
 2. `migrations/0002_voltix_funciones.sql`: funciones RPC
-3. Siembra inicial:
+3. `migrations/0003_voltix_precios_simulados.sql`: precios de las tiendas
+   (Fase 3) y restauración ampliada
+4. Siembra inicial:
 
    ```sql
    select public.voltix_restaurar_demo();
    ```
 
-Los tres pasos son idempotentes, así que se pueden volver a correr sin problema.
+Todos los pasos son idempotentes, así que se pueden volver a correr sin problema.
 
 ## Objetos
 
@@ -23,19 +25,20 @@ Los tres pasos son idempotentes, así que se pueden volver a correr sin problema
 | --- | --- | --- |
 | `voltix_productos` | tabla | Catálogo maestro: `sku` (PK), `nombre`, `categoria`, `precio_voltix`, `orden` |
 | `voltix_historial_precios` | tabla | Un renglón por sku+tienda por corrida: `precio`, `precio_anterior`, `stock`, `fecha_scrape` |
+| `voltix_precios_simulados` | tabla | Precio y stock vigentes por sku+tienda que muestran GigaBazar y ElectroExpress (`precio_base` / `precio_actual`) |
 | `voltix_disparos` | tabla (1 fila) | Timestamp del último "Ejecutar monitoreo ahora" (cooldown) |
 | `voltix_ultimos_precios` | vista | Último snapshot por sku+tienda (`security_invoker`, respeta RLS) |
 | `voltix_reservar_disparo(minutos)` | RPC | Reserva atómica del cooldown; la única escritura permitida a anon |
-| `voltix_restaurar_demo()` | RPC | Trunca y re-siembra el historial; solo `service_role` |
+| `voltix_restaurar_demo()` | RPC | Trunca y re-siembra el historial y regresa los precios simulados a su base; solo `service_role` |
 
 ## Modelo de acceso
 
 | Rol | Quién lo usa | Puede |
 | --- | --- | --- |
-| `anon` / `authenticated` | Dashboard (clave pública) | `SELECT` en las tablas y la vista; ejecutar `voltix_reservar_disparo` |
-| `service_role` | Scraper y restauración (GitHub Actions) | Todo; bypassea RLS |
+| `anon` / `authenticated` | Dashboard y tiendas (clave pública) | `SELECT` en las tablas y la vista; ejecutar `voltix_reservar_disparo` |
+| `service_role` | Scraper, simulación y restauración (GitHub Actions) | Todo; bypassea RLS |
 
-- RLS está activo en las tres tablas y solo hay políticas de `SELECT`, así que
+- RLS está activo en las cuatro tablas y solo hay políticas de `SELECT`, así que
   `INSERT`/`UPDATE`/`DELETE` quedan denegados para anon y authenticated.
 - Además se les revocan esos privilegios (y `TRUNCATE`, que no pasa por RLS).
 - La vista usa `security_invoker = true`: sin eso, una vista corre con los

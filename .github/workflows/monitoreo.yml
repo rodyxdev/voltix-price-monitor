@@ -26,8 +26,8 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      # URL pública donde se publican las tiendas (Fase 3). Es una variable,
-      # no un secret: no es sensible y así se ve en los logs.
+      # URLs públicas de las tiendas (una app de Vercel cada una). Es una
+      # variable, no un secret: no es sensible y así se ve en los logs.
       VOLTIX_COMPETIDORES_URL: ${{ vars.VOLTIX_COMPETIDORES_URL }}
 
     steps:
@@ -40,9 +40,10 @@ jobs:
           faltan=""
           [ -z "${SUPABASE_URL}" ] && faltan="${faltan} SUPABASE_URL(secret)"
           [ -z "${SUPABASE_SERVICE_ROLE_KEY}" ] && faltan="${faltan} SUPABASE_SERVICE_ROLE_KEY(secret)"
-          # Un placeholder (p. ej. PENDIENTE_FASE_3) cuenta como no configurado.
+          # Formato: gigabazar=https://...,electroexpress=https://...
+          # Un placeholder sin URL (p. ej. PENDIENTE_FASE_3) cuenta como no configurado.
           case "${VOLTIX_COMPETIDORES_URL}" in
-            http://*|https://*) ;;
+            *http://*|*https://*) ;;
             *) faltan="${faltan} VOLTIX_COMPETIDORES_URL(variable)" ;;
           esac
           if [ -n "${faltan}" ]; then

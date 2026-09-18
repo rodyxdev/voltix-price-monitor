@@ -93,6 +93,23 @@ class ClienteSupabase:
         )
         return len(filas)
 
+    def upsert(self, tabla, filas, on_conflict):
+        """INSERT ... ON CONFLICT DO UPDATE en bloque (una transacción).
+
+        Las filas deben traer todas las columnas NOT NULL: Postgres valida la
+        fila propuesta antes de decidir si hay conflicto.
+        """
+        if not filas:
+            return 0
+        self._peticion(
+            "POST",
+            tabla,
+            params={"on_conflict": on_conflict},
+            data=json.dumps(filas),
+            headers={"Prefer": "resolution=merge-duplicates,return=minimal"},
+        )
+        return len(filas)
+
     def rpc(self, funcion, argumentos=None):
         respuesta = self._peticion("POST", f"rpc/{funcion}", data=json.dumps(argumentos or {}))
         return respuesta.json() if respuesta.content else None

@@ -1,0 +1,23 @@
+{
+  "name": "voltix-gigabazar",
+  "version": "0.3.0",
+  "private": true,
+  "description": "GigaBazar: tienda ficticia de gadgets (competidor simulado para la demo de Voltix)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "snapshot": "node scripts/snapshot.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "author": "rodyxdev",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "dotenv": "^17.4.2",
+    "express": "^4.22.1"
+  }
+}

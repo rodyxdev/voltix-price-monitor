@@ -10,7 +10,8 @@ ejecutable con la service role), que:
   a) re-sincroniza voltix_productos con el catálogo base (incluye precio Voltix)
   b) trunca voltix_historial_precios
   c) lo re-siembra con dos snapshots fijos (ayer y hoy) para las 2 tiendas
-  d) limpia el timestamp del último disparo (reinicia el cooldown)
+  d) regresa voltix_precios_simulados (lo que muestran las tiendas) a su base
+  e) limpia el timestamp del último disparo (reinicia el cooldown)
 
 y al final comprueba que la base quedó en ese estado. Si no, sale con código 1
 para que el workflow se marque como fallido.
@@ -48,6 +49,19 @@ def verificar(cliente):
     if sin_anterior:
         problemas.append("snapshots de hoy sin precio_anterior: " + ", ".join(sin_anterior))
 
+    simulados = cliente.select(
+        "voltix_precios_simulados", "sku,tienda,precio_base,precio_actual,stock_base,stock_actual"
+    )
+    if len(simulados) != PRODUCTOS_BASE * TIENDAS_BASE:
+        problemas.append(f"hay {len(simulados)} precios simulados, se esperaban {PRODUCTOS_BASE * TIENDAS_BASE}")
+    movidos = [
+        f"{s['tienda']}:{s['sku']}"
+        for s in simulados
+        if s["precio_actual"] != s["precio_base"] or s["stock_actual"] != s["stock_base"]
+    ]
+    if movidos:
+        problemas.append("precios simulados fuera de su base: " + ", ".join(movidos))
+
     disparos = cliente.select("voltix_disparos", "ultimo_disparo")
     if not disparos or disparos[0]["ultimo_disparo"] is not None:
         problemas.append("el cooldown del botón no quedó reiniciado")
@@ -69,7 +83,7 @@ def main():
 
     print(
         f"OK: {PRODUCTOS_BASE} productos, {PRODUCTOS_BASE * TIENDAS_BASE} precios actuales "
-        f"con historial y cooldown reiniciado."
+        f"con historial, tiendas en precio base y cooldown reiniciado."
     )
     return 0
 

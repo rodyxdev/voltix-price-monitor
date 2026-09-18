@@ -18,21 +18,47 @@ def _env(nombre, defecto=""):
     return (os.environ.get(nombre) or defecto).strip()
 
 
-# Raíz donde viven las tiendas. En local: el http.server de /competitors.
-# En Actions: la URL pública que se defina en la Fase 3.
-BASE_COMPETIDORES = _env("VOLTIX_COMPETIDORES_URL", "http://localhost:8081").rstrip("/")
+NOMBRES_TIENDAS = {"gigabazar": "GigaBazar", "electroexpress": "ElectroExpress"}
 
+
+def urls_tiendas(valor):
+    """Resuelve la URL del catálogo de cada tienda a partir de VOLTIX_COMPETIDORES_URL.
+
+    Dos formatos:
+      * Un host por tienda (Fase 3, cada tienda es su propia app):
+          gigabazar=https://gigabazar.vercel.app,electroexpress=https://electroexpress.vercel.app
+        -> <url>/index.html
+      * Una sola raíz con una carpeta por tienda (sitios estáticos servidos juntos):
+          http://localhost:8000  -> <raíz>/<tienda>/index.html
+    """
+    valor = valor.strip()
+    if "=" not in valor:
+        raiz = valor.rstrip("/")
+        return {slug: f"{raiz}/{slug}/index.html" for slug in NOMBRES_TIENDAS}
+
+    urls = {}
+    for par in filter(None, (p.strip() for p in valor.split(","))):
+        slug, _, url = par.partition("=")
+        slug = slug.strip().lower()
+        if slug not in NOMBRES_TIENDAS or not url.strip():
+            raise ValueError(f"VOLTIX_COMPETIDORES_URL: entrada inválida '{par}'")
+        urls[slug] = url.strip().rstrip("/") + "/index.html"
+    faltan = sorted(set(NOMBRES_TIENDAS) - set(urls))
+    if faltan:
+        raise ValueError("VOLTIX_COMPETIDORES_URL: falta la URL de " + ", ".join(faltan))
+    return urls
+
+
+# En local cada tienda es una app Express en su puerto (ver competitors/README.md).
+BASE_COMPETIDORES = _env(
+    "VOLTIX_COMPETIDORES_URL",
+    "gigabazar=http://localhost:8081,electroexpress=http://localhost:8082",
+)
+
+_URLS = urls_tiendas(BASE_COMPETIDORES)
 TIENDAS = [
-    {
-        "slug": "gigabazar",
-        "nombre": "GigaBazar",
-        "url": f"{BASE_COMPETIDORES}/gigabazar/index.html",
-    },
-    {
-        "slug": "electroexpress",
-        "nombre": "ElectroExpress",
-        "url": f"{BASE_COMPETIDORES}/electroexpress/index.html",
-    },
+    {"slug": slug, "nombre": nombre, "url": _URLS[slug]}
+    for slug, nombre in NOMBRES_TIENDAS.items()
 ]
 
 # Selectores CSS del catálogo. Ambas tiendas comparten la misma estructura,
