@@ -1,13 +1,26 @@
 """Configuración del scraper de Voltix.
 
-En la Fase 1 las URLs apuntan al servidor estático local de /competitors.
-En la Fase 3 se sustituyen por las URLs desplegadas (y se leerán de variables
-de entorno, junto con las credenciales de Supabase).
+Todo sale de variables de entorno. En local se pueden poner en scraper/.env
+(ver .env.example); en GitHub Actions llegan como secrets/variables.
 """
 import os
+from pathlib import Path
 
-# Servidor estático local de /competitors (ver competitors/README.md).
-BASE_COMPETIDORES = os.environ.get("VOLTIX_COMPETIDORES_URL", "http://localhost:8081")
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).with_name(".env"))
+except ImportError:  # python-dotenv es opcional: en Actions no hace falta
+    pass
+
+
+def _env(nombre, defecto=""):
+    return (os.environ.get(nombre) or defecto).strip()
+
+
+# Raíz donde viven las tiendas. En local: el http.server de /competitors.
+# En Actions: la URL pública que se defina en la Fase 3.
+BASE_COMPETIDORES = _env("VOLTIX_COMPETIDORES_URL", "http://localhost:8081").rstrip("/")
 
 TIENDAS = [
     {
@@ -33,4 +46,9 @@ SELECTORES = {
 }
 
 TIMEOUT_SEGUNDOS = 15
-USER_AGENT = "VoltixPriceMonitor/0.1 (+https://github.com/rodyxdev/voltix-price-monitor)"
+USER_AGENT = "VoltixPriceMonitor/0.2 (+https://github.com/rodyxdev/voltix-price-monitor)"
+
+# Supabase: solo se usan con --guardar y en restaurar.py. La service role key
+# bypassea RLS; vive únicamente aquí (GitHub Actions), nunca en el dashboard.
+SUPABASE_URL = _env("SUPABASE_URL").rstrip("/")
+SUPABASE_SERVICE_ROLE_KEY = _env("SUPABASE_SERVICE_ROLE_KEY")

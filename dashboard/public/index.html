@@ -30,11 +30,11 @@
       </article>
       <article class="kpi">
         <p class="kpi__valor kpi__valor--baja" id="kpi-bajas">—</p>
-        <p class="kpi__label">Bajaron de precio</p>
+        <p class="kpi__label">Con bajas de precio</p>
       </article>
       <article class="kpi">
         <p class="kpi__valor kpi__valor--alza" id="kpi-alzas">—</p>
-        <p class="kpi__label">Subieron de precio</p>
+        <p class="kpi__label">Con alzas de precio</p>
       </article>
       <article class="kpi">
         <p class="kpi__valor" id="kpi-mas-barato">—</p>
@@ -43,13 +43,15 @@
     </section>
 
     <!-- Acciones -->
-    <section class="acciones">
-      <button id="btn-monitoreo" class="btn btn--primario" type="button">
-        Ejecutar monitoreo ahora
+    <section class="acciones" aria-live="polite">
+      <button id="btn-monitoreo" class="btn btn--primario" type="button" disabled>
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="btn-monitoreo-texto">Ejecutar monitoreo ahora</span>
       </button>
-      <p class="acciones__nota" id="estado-monitoreo">
-        El monitoreo automático corre todos los días a las 7:00 a. m.
-      </p>
+      <div class="acciones__info">
+        <p class="acciones__nota" id="estado-monitoreo">Consultando estado del monitoreo…</p>
+        <p class="acciones__nota" id="ultima-corrida" hidden></p>
+      </div>
     </section>
 
     <!-- Tabla comparativa -->
@@ -57,7 +59,7 @@
       <div class="panel__head">
         <h2>Comparativa de precios</h2>
         <p class="panel__nota">
-          Datos de ejemplo. En la Fase 2 se reemplazan por las lecturas reales del scraper.
+          Último precio leído en cada tienda, comparado contra la lectura anterior.
         </p>
       </div>
 
@@ -75,7 +77,7 @@
           </thead>
           <tbody id="tabla-body">
             <tr>
-              <td colspan="6" class="vacio">Cargando datos de ejemplo…</td>
+              <td colspan="6" class="vacio">Cargando precios…</td>
             </tr>
           </tbody>
         </table>
@@ -94,47 +96,37 @@
       <div class="panel__head">
         <h2>Reportes</h2>
         <p class="panel__nota">
-          La generación real de archivos llega en la Fase 2.
+          Se generan al momento con los precios más recientes.
         </p>
       </div>
 
       <ul class="reportes">
         <li class="reporte">
           <div>
-            <p class="reporte__nombre">Comparativa semanal</p>
-            <p class="reporte__meta">Excel · semana del 8 al 14 de septiembre</p>
+            <p class="reporte__nombre">Comparativa completa</p>
+            <p class="reporte__meta">Excel · precio por tienda, cambio, stock y posición de Voltix</p>
           </div>
-          <button class="btn btn--secundario" type="button" data-reporte="excel-semanal" disabled>
+          <a class="btn btn--secundario" href="/api/reportes/comparativa.xlsx" download>
             Descargar Excel
-          </button>
+          </a>
         </li>
         <li class="reporte">
           <div>
             <p class="reporte__nombre">Resumen ejecutivo</p>
-            <p class="reporte__meta">PDF · semana del 8 al 14 de septiembre</p>
+            <p class="reporte__meta">PDF · listo para imprimir o compartir</p>
           </div>
-          <button class="btn btn--secundario" type="button" data-reporte="pdf-semanal" disabled>
+          <a class="btn btn--secundario" href="/api/reportes/comparativa.pdf" download>
             Descargar PDF
-          </button>
-        </li>
-        <li class="reporte">
-          <div>
-            <p class="reporte__nombre">Histórico del mes</p>
-            <p class="reporte__meta">Excel · septiembre 2026</p>
-          </div>
-          <button class="btn btn--secundario" type="button" data-reporte="excel-mensual" disabled>
-            Descargar Excel
-          </button>
+          </a>
         </li>
       </ul>
     </section>
   </main>
 
   <footer class="app-footer">
-    <p>Voltix · Fase 1 — cascarón estático con datos de ejemplo.</p>
+    <p>Voltix · GigaBazar y ElectroExpress son tiendas ficticias creadas para esta demo.</p>
   </footer>
 
-  <script src="js/datos-ejemplo.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -72,6 +72,11 @@ main { max-width: 1120px; margin: 0 auto; padding: 1.25rem 1rem 2.5rem; }
 .acciones__nota { margin: 0; font-size: .8rem; color: var(--texto-suave); }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  text-decoration: none;
   border: none;
   border-radius: var(--radio);
   font-size: .95rem;
@@ -90,6 +95,27 @@ main { max-width: 1120px; margin: 0 auto; padding: 1.25rem 1rem 2.5rem; }
   white-space: nowrap;
 }
 .btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn--secundario:hover { border-color: var(--marca); }
+
+/* Estado "en progreso" del botón de monitoreo */
+.spinner {
+  display: none;
+  width: 1em;
+  height: 1em;
+  border: 2px solid rgba(255, 255, 255, .45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: girar .8s linear infinite;
+}
+.btn--ocupado .spinner { display: inline-block; }
+.btn--ocupado:disabled { opacity: .85; cursor: progress; }
+@keyframes girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2.4s; }
+}
+
+.acciones__info { display: flex; flex-direction: column; gap: .15rem; }
+.acciones__nota a { color: var(--marca); font-weight: 600; }
 
 /* Paneles */
 .panel {

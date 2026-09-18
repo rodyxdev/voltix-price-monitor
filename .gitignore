@@ -8,6 +8,13 @@ venv/
 # Entornos y secretos
 *.env*
 .env
+# ...pero las plantillas sin secretos sí se versionan
+!.env.example
+# Archivos sueltos donde suelen acabar las llaves pegadas a mano
+env.txt
+*env*.txt
+*.key
+secrets*
 
 # Bases de datos locales
 *.sqlite*
@@ -31,5 +38,6 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Config local de Claude Code (launch.json del panel de preview)
-.claude/
+# Config local de Claude Code: solo se versiona settings.json (atribución vacía)
+.claude/*
+!.claude/settings.json

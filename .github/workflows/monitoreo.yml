@@ -1,0 +1,73 @@
+name: Monitoreo de precios
+
+# Corre el scraper contra GigaBazar y ElectroExpress y guarda el snapshot en
+# Supabase (voltix_historial_precios). Además del cron, el botón "Ejecutar
+# monitoreo ahora" del dashboard lo dispara vía workflow_dispatch.
+on:
+  schedule:
+    # Cada 6 horas: 00:00, 06:00, 12:00 y 18:00 UTC.
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+# Monitoreo y restauración escriben las mismas tablas: nunca corren a la vez.
+concurrency:
+  group: voltix-base-de-datos
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  monitoreo:
+    name: Scrapear y guardar snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # URL pública donde se publican las tiendas (Fase 3). Es una variable,
+      # no un secret: no es sensible y así se ve en los logs.
+      VOLTIX_COMPETIDORES_URL: ${{ vars.VOLTIX_COMPETIDORES_URL }}
+
+    steps:
+      # Mientras falte configuración (antes de la Fase 3) el cron se omite con
+      # un aviso en vez de fallar cada 6 horas. Una ejecución manual sí falla,
+      # para que quien la lanzó vea el problema.
+      - name: Comprobar configuración
+        id: config
+        run: |
+          faltan=""
+          [ -z "${SUPABASE_URL}" ] && faltan="${faltan} SUPABASE_URL(secret)"
+          [ -z "${SUPABASE_SERVICE_ROLE_KEY}" ] && faltan="${faltan} SUPABASE_SERVICE_ROLE_KEY(secret)"
+          [ -z "${VOLTIX_COMPETIDORES_URL}" ] && faltan="${faltan} VOLTIX_COMPETIDORES_URL(variable)"
+          if [ -n "${faltan}" ]; then
+            if [ "${GITHUB_EVENT_NAME}" = "schedule" ]; then
+              echo "::warning::Monitoreo omitido, falta configurar:${faltan}"
+              echo "listo=false" >> "${GITHUB_OUTPUT}"
+              exit 0
+            fi
+            echo "::error::Falta configurar en Settings -> Secrets and variables -> Actions:${faltan}"
+            exit 1
+          fi
+          echo "listo=true" >> "${GITHUB_OUTPUT}"
+
+      - uses: actions/checkout@v5
+        if: steps.config.outputs.listo == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.config.outputs.listo == 'true'
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: scraper/requirements.txt
+
+      - name: Instalar dependencias
+        if: steps.config.outputs.listo == 'true'
+        working-directory: scraper
+        run: pip install -r requirements.txt
+
+      - name: Scrapear y guardar en Supabase
+        if: steps.config.outputs.listo == 'true'
+        working-directory: scraper
+        run: python main.py --guardar

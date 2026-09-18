@@ -1,15 +1,9 @@
 # /scraper — Scraper de precios de Voltix
 
-Proyecto Python que descarga los catálogos de las tiendas de `/competitors` y
-extrae nombre, precio, categoría, SKU y disponibilidad de cada producto.
-
-En la Fase 1 **solo imprime en consola**: no hay base de datos, credenciales ni
-reportes.
-
-## Requisitos
-
-- Python 3.11 o superior
-- El servidor estático de `/competitors` corriendo (ver su README)
+Proyecto Python que descarga los catálogos de las tiendas de `/competitors`,
+extrae SKU, nombre, precio, categoría y disponibilidad, y (con `--guardar`)
+inserta el snapshot en Supabase. Lo ejecuta GitHub Actions cada 6 horas y
+cuando alguien usa el botón "Ejecutar monitoreo ahora".
 
 ## Correr en local
 
@@ -18,51 +12,57 @@ cd scraper
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python main.py
+cp .env.example .env         # solo hace falta para --guardar / restaurar.py
 ```
 
 En macOS/Linux el activate es `source .venv/bin/activate`.
 
-Salida JSON (útil para inspeccionar la estructura que consumirá la Fase 2):
+Con el servidor de `/competitors` corriendo (ver su README):
 
 ```bash
-python main.py --json
+python main.py              # imprime por tienda y la comparativa por SKU
+python main.py --json       # stdout con JSON válido
+python main.py --guardar    # además inserta el snapshot en Supabase
+python restaurar.py         # re-siembra el historial con el snapshot base
+python -m unittest discover -s tests -t .
 ```
 
-Código de salida: `0` si se leyeron ambas tiendas sin errores, `1` si alguna
-falló o no se extrajo ningún producto.
+`main.py` sale con `0` si todo salió bien y con `1` si alguna tienda falló, no
+se extrajo nada o no se pudo guardar.
+
+## Variables de entorno
+
+| Variable | Para qué |
+| --- | --- |
+| `VOLTIX_COMPETIDORES_URL` | Raíz de las tiendas (por defecto `http://localhost:8081`) |
+| `SUPABASE_URL` | Project URL (solo `--guardar` y `restaurar.py`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Secret key (`sb_secret_...`) o service_role legacy. Si recibe la clave pública, el cliente se detiene con un error explícito |
 
 ## Estructura
 
 ```
-main.py            Punto de entrada: corre el scraping e imprime el resultado
+main.py            Punto de entrada (consola / --json / --guardar)
+restaurar.py       Restauración diaria del demo + verificación
 scraper.py         Descarga, parseo y el dataclass Producto
-config.py          URLs de las tiendas, selectores CSS, timeout, user agent
-requirements.txt   requests + beautifulsoup4
+persistencia.py    Arma y guarda el snapshot (precio_anterior incluido)
+supabase_rest.py   Cliente mínimo de PostgREST sobre requests
+config.py          URLs, selectores, variables de entorno
+tests/             unittest sin red (HTML de /competitors + cliente falso)
 ```
 
-## Configuración
+## Cómo se guarda un snapshot
 
-| Variable de entorno | Default | Para qué |
-| --- | --- | --- |
-| `VOLTIX_COMPETIDORES_URL` | `http://localhost:8081` | Raíz donde viven las tiendas |
+1. Se leen los SKU válidos (`voltix_productos`) y el último precio por
+   sku+tienda (vista `voltix_ultimos_precios`).
+2. Cada producto scrapeado se empareja **por SKU** (`data-sku`), no por
+   nombre. Los SKU que no están en el catálogo se omiten con un aviso.
+3. Se insertan todos los renglones en una sola petición (una transacción),
+   con la misma `fecha_scrape` y con `precio_anterior` = último precio conocido.
+   La dirección del cambio la calcula el dashboard.
 
-Los selectores CSS viven en `config.SELECTORES` y son iguales para ambas tiendas
-(mismo contrato HTML, ver `competitors/README.md`).
+Si una tienda falla, igual se guarda lo que sí se leyó de la otra y el proceso
+sale con `1` para que la corrida aparezca como fallida en Actions.
 
-## Qué imprime
-
-1. Listado por tienda: producto, precio y disponibilidad.
-2. Comparativa por producto: emparejamiento por nombre normalizado, cuál tienda
-   es más barata y la diferencia.
-
-Si una tienda falla, se reporta el error por `stderr` y la otra se sigue
-procesando.
-
-## Pendiente para la Fase 2
-
-- Persistencia en Supabase (tablas `voltix_*`) y lectura de credenciales desde
-  variables de entorno.
-- Comparación contra la última lectura guardada para detectar subidas/bajadas.
-- Generación de reportes Excel y PDF.
-- Emparejamiento por SKU/catálogo maestro en lugar de por nombre normalizado.
+¿Por qué `requests` y no supabase-py? El scraper solo necesita tres llamadas a
+PostgREST. Es el mismo camino HTTPS que usa supabase-js en el dashboard, sin
+conexión Postgres directa y sin sumar dependencias.

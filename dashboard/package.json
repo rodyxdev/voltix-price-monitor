@@ -1,18 +1,24 @@
 {
   "name": "voltix-dashboard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Dashboard de monitoreo de precios de competencia de Voltix (Fase 1: cascarón estático)",
+  "description": "Dashboard de monitoreo de precios de competencia de Voltix",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "test": "node --test \"test/**/*.test.js\""
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.0.0"
   },
+  "author": "rodyxdev",
+  "license": "UNLICENSED",
   "dependencies": {
-    "express": "^4.19.2"
-  },
-  "license": "UNLICENSED"
+    "@supabase/supabase-js": "^2.57.0",
+    "dotenv": "^17.2.0",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "pdfkit": "^0.17.0"
+  }
 }

@@ -1,7 +1,8 @@
 """Extracción de productos de las tiendas de /competitors.
 
-Fase 1: solo descarga y parseo. No hay persistencia ni comparación histórica;
-eso entra en la Fase 2 junto con Supabase.
+Solo descarga y parseo. La persistencia en Supabase vive en persistencia.py.
+El SKU (atributo data-sku) es la llave para emparejar productos entre tiendas:
+el nombre es solo visual y puede variar.
 """
 from dataclasses import dataclass, asdict
 from decimal import Decimal, InvalidOperation
@@ -15,7 +16,8 @@ import config
 
 @dataclass
 class Producto:
-    tienda: str
+    tienda: str  # nombre visible, p. ej. "GigaBazar"
+    tienda_slug: str  # identificador en la base, p. ej. "gigabazar"
     sku: str
     nombre: str
     categoria: str
@@ -66,7 +68,7 @@ def _texto(tarjeta, selector):
     return nodo.get_text(strip=True) if nodo else ""
 
 
-def parsear_catalogo(html, tienda_nombre):
+def parsear_catalogo(html, tienda_nombre, tienda_slug=""):
     """Convierte el HTML de un catálogo en una lista de Producto."""
     sel = config.SELECTORES
     sopa = BeautifulSoup(html, "html.parser")
@@ -81,14 +83,16 @@ def parsear_catalogo(html, tienda_nombre):
         nodo_precio = tarjeta.select_one(sel["precio"])
         precio = parsear_precio(nodo_precio.get_text() if nodo_precio else "")
         nombre = _texto(tarjeta, sel["nombre"])
-        if not nombre or precio is None:
+        sku = (tarjeta.get("data-sku") or "").strip()
+        if not sku or not nombre or precio is None:
             # Tarjeta incompleta: se ignora en lugar de tumbar la corrida.
             continue
 
         productos.append(
             Producto(
                 tienda=tienda_nombre,
-                sku=tarjeta.get("data-sku", ""),
+                tienda_slug=tienda_slug,
+                sku=sku,
                 nombre=nombre,
                 categoria=_texto(tarjeta, sel["categoria"]),
                 precio=precio,
@@ -106,7 +110,7 @@ def scrapear_tienda(tienda):
         html = descargar(tienda["url"])
     except requests.RequestException as exc:
         raise ErrorScraping(f"{tienda['nombre']}: no se pudo descargar {tienda['url']} ({exc})") from exc
-    return parsear_catalogo(html, tienda["nombre"])
+    return parsear_catalogo(html, tienda["nombre"], tienda["slug"])
 
 
 def scrapear_todas(tiendas=None):

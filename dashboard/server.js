@@ -1,28 +1,38 @@
 /**
- * Voltix - servidor del dashboard.
+ * Voltix - arranque del dashboard.
  *
- * Fase 1: únicamente sirve el frontend estático de /public.
- * Fase 2 agregará aquí las rutas de API (datos reales desde Supabase,
- * POST /api/monitoreo para "ejecutar ahora" y descarga de reportes).
+ *   npm start        (lee dashboard/.env si existe)
+ *
+ * Arma las dependencias reales (Supabase con clave pública, API de GitHub) y
+ * las inyecta en crearApp(). También exporta la app para el handler
+ * serverless de la Fase 3.
  */
-const path = require('path');
-const express = require('express');
+'use strict';
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const { cargarConfig } = require('./src/config');
+const { crearApp } = require('./src/app');
+const { crearClienteSupabase, crearFuenteDatos } = require('./src/lib/supabase');
+const { crearClienteGithub } = require('./src/lib/github');
+const { crearServicioMonitoreo } = require('./src/lib/monitoreo');
 
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Chequeo de salud: útil para el deploy de Fase 3.
-app.get('/health', (req, res) => {
-  res.json({ ok: true, servicio: 'voltix-dashboard', fase: 1 });
+const config = cargarConfig();
+const fuenteDatos = crearFuenteDatos(crearClienteSupabase(config));
+const github = crearClienteGithub(config.github);
+const monitoreo = crearServicioMonitoreo({
+  datos: fuenteDatos,
+  github,
+  cooldownMinutos: config.cooldownMinutos
 });
 
-app.use((req, res) => {
-  res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+const app = crearApp({ fuenteDatos, monitoreo });
 
-app.listen(PORT, () => {
-  console.log(`Voltix dashboard escuchando en http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(config.puerto, () => {
+    console.log('Voltix dashboard escuchando en http://localhost:' + config.puerto);
+    if (!github.configurado) {
+      console.log('Aviso: sin VOLTIX_GITHUB_TOKEN, el botón "Ejecutar monitoreo ahora" queda deshabilitado.');
+    }
+  });
+}
+
+module.exports = app;

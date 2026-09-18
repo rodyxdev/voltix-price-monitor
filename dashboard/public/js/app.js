@@ -1,153 +1,288 @@
 /**
- * Voltix dashboard - render del cascarón estático (Fase 1).
+ * Voltix dashboard - frontend.
  *
- * Toda la data viene de window.VOLTIX_DATOS_EJEMPLO (js/datos-ejemplo.js).
- * En la Fase 2 solo hay que cambiar `cargarDatos()` por un fetch al backend;
- * el resto del render se queda igual.
+ * Lee la vista comparativa de GET /api/productos (datos vivos de Supabase) y
+ * maneja el botón "Ejecutar monitoreo ahora" contra /api/monitoreo. Toda la
+ * lógica de tendencias y posición viene calculada del servidor; aquí solo se
+ * pinta.
  */
 (function () {
   'use strict';
 
-  var COMPETIDORES = ['gigabazar', 'electroexpress'];
-  var SIMBOLO_TENDENCIA = { baja: '▼', alza: '▲', igual: '=' };
+  var TENDENCIA = {
+    baja: { simbolo: '▼', texto: 'bajó' },
+    alza: { simbolo: '▲', texto: 'subió' },
+    igual: { simbolo: '=', texto: 'sin cambio' },
+    sin_historial: { simbolo: '—', texto: 'sin lectura anterior' }
+  };
+  var CLASE_POSICION = { ganamos: 'badge--ok', empate: 'badge--neutro', perdemos: 'badge--alerta', sin_datos: 'badge--neutro' };
+  var SONDEO_ACTIVO_MS = 8000;
+  var SONDEO_INACTIVO_MS = 60000;
 
-  function cargarDatos() {
-    // Fase 2: return fetch('/api/productos').then(function (r) { return r.json(); });
-    return Promise.resolve(window.VOLTIX_DATOS_EJEMPLO);
+  var estadoPrevio = null;
+  var temporizadorSondeo = null;
+  var temporizadorCuenta = null;
+
+  // ---------------------------------------------------------------------
+  // Utilidades
+  // ---------------------------------------------------------------------
+
+  function $(id) { return document.getElementById(id); }
+
+  function moneda(valor) {
+    return Number(valor).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 });
   }
 
-  function formatoMoneda(valor) {
-    return valor.toLocaleString('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-      minimumFractionDigits: 2
+  function fecha(iso) {
+    if (!iso) return 'sin lecturas';
+    return new Date(iso).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
+  }
+
+  function hace(iso) {
+    var minutos = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (minutos < 1) return 'hace un momento';
+    if (minutos < 60) return 'hace ' + minutos + ' min';
+    var horas = Math.round(minutos / 60);
+    if (horas < 24) return 'hace ' + horas + ' h';
+    return fecha(iso);
+  }
+
+  function mmss(segundos) {
+    var m = Math.floor(segundos / 60);
+    var s = segundos % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function elemento(tag, clase, texto) {
+    var el = document.createElement(tag);
+    if (clase) el.className = clase;
+    if (texto !== undefined) el.textContent = texto;
+    return el;
+  }
+
+  function pedirJson(url, opciones) {
+    return fetch(url, opciones).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (cuerpo) {
+        if (!r.ok) {
+          var error = new Error(cuerpo.error || 'Error ' + r.status);
+          error.estado = r.status;
+          error.cuerpo = cuerpo;
+          throw error;
+        }
+        return cuerpo;
+      });
     });
   }
 
-  function celdaCompetidor(datos, precioVoltix) {
-    var td = document.createElement('td');
-    td.className = 'num';
-    td.setAttribute('data-label', '');
+  // ---------------------------------------------------------------------
+  // Tabla y KPIs
+  // ---------------------------------------------------------------------
 
-    var precio = document.createElement('span');
-    precio.className = 'precio';
-    precio.textContent = formatoMoneda(datos.precio);
-    if (datos.precio < precioVoltix) {
-      precio.classList.add('precio--menor');
+  function celdaCompetidor(lectura, precioVoltix, nombreTienda) {
+    var td = elemento('td', 'num');
+    td.setAttribute('data-label', nombreTienda);
+
+    if (!lectura) {
+      td.appendChild(elemento('span', 'stock', 'Sin lectura'));
+      return td;
     }
 
-    var tendencia = document.createElement('span');
-    tendencia.className = 'tendencia tendencia--' + datos.tendencia;
-    tendencia.textContent = SIMBOLO_TENDENCIA[datos.tendencia] || '=';
-    tendencia.title = 'Precio ' + datos.tendencia + ' respecto al monitoreo anterior';
+    var precio = elemento('span', 'precio', moneda(lectura.precio));
+    if (lectura.precio < precioVoltix) precio.classList.add('precio--menor');
 
-    var stock = document.createElement('span');
-    stock.className = 'stock';
-    stock.textContent = datos.stock;
+    var info = TENDENCIA[lectura.tendencia] || TENDENCIA.sin_historial;
+    var tendencia = elemento('span', 'tendencia tendencia--' + lectura.tendencia, info.simbolo);
+    tendencia.title = lectura.precioAnterior === null
+      ? info.texto
+      : 'Antes ' + moneda(lectura.precioAnterior) + ' (' + info.texto + ')';
 
     td.appendChild(precio);
     td.appendChild(tendencia);
-    td.appendChild(stock);
+    td.appendChild(elemento('span', 'stock', lectura.stock));
     return td;
   }
 
-  function posicion(producto) {
-    var precios = COMPETIDORES.map(function (key) {
-      return producto.competidores[key].precio;
-    });
-    var menorCompetencia = Math.min.apply(null, precios);
-    if (producto.precioVoltix < menorCompetencia) {
-      return { texto: 'Voltix es el más barato', clase: 'badge--ok' };
-    }
-    if (producto.precioVoltix === menorCompetencia) {
-      return { texto: 'Empatados', clase: 'badge--neutro' };
-    }
-    return { texto: 'Nos ganan por ' + formatoMoneda(producto.precioVoltix - menorCompetencia), clase: 'badge--alerta' };
-  }
-
-  function fila(producto) {
+  function fila(producto, tiendas) {
     var tr = document.createElement('tr');
 
-    var tdNombre = document.createElement('th');
-    tdNombre.scope = 'row';
-    tdNombre.className = 'producto';
-    tdNombre.innerHTML =
-      '<span class="producto__nombre"></span><span class="producto__sku"></span>';
-    tdNombre.querySelector('.producto__nombre').textContent = producto.nombre;
-    tdNombre.querySelector('.producto__sku').textContent = 'SKU ' + producto.sku;
-    tr.appendChild(tdNombre);
+    var th = elemento('th', 'producto');
+    th.scope = 'row';
+    th.appendChild(elemento('span', 'producto__nombre', producto.nombre));
+    th.appendChild(elemento('span', 'producto__sku', 'SKU ' + producto.sku));
+    tr.appendChild(th);
 
-    var tdCategoria = document.createElement('td');
-    tdCategoria.className = 'categoria';
-    tdCategoria.setAttribute('data-label', 'Categoría');
-    tdCategoria.textContent = producto.categoria;
-    tr.appendChild(tdCategoria);
+    var categoria = elemento('td', 'categoria', producto.categoria);
+    categoria.setAttribute('data-label', 'Categoría');
+    tr.appendChild(categoria);
 
-    var tdVoltix = document.createElement('td');
-    tdVoltix.className = 'num';
-    tdVoltix.setAttribute('data-label', 'Voltix');
-    tdVoltix.innerHTML = '<span class="precio precio--propio"></span>';
-    tdVoltix.querySelector('.precio').textContent = formatoMoneda(producto.precioVoltix);
-    tr.appendChild(tdVoltix);
+    var voltix = elemento('td', 'num');
+    voltix.setAttribute('data-label', 'Voltix');
+    voltix.appendChild(elemento('span', 'precio precio--propio', moneda(producto.precioVoltix)));
+    tr.appendChild(voltix);
 
-    COMPETIDORES.forEach(function (key) {
-      var celda = celdaCompetidor(producto.competidores[key], producto.precioVoltix);
-      celda.setAttribute('data-label', key === 'gigabazar' ? 'GigaBazar' : 'ElectroExpress');
-      tr.appendChild(celda);
+    tiendas.forEach(function (t) {
+      tr.appendChild(celdaCompetidor(producto.competidores[t.slug], producto.precioVoltix, t.nombre));
     });
 
-    var estado = posicion(producto);
-    var tdPosicion = document.createElement('td');
-    tdPosicion.setAttribute('data-label', 'Posición');
-    tdPosicion.innerHTML = '<span class="badge ' + estado.clase + '"></span>';
-    tdPosicion.querySelector('.badge').textContent = estado.texto;
-    tr.appendChild(tdPosicion);
+    var pos = producto.posicion;
+    var texto = pos.clave === 'perdemos' ? pos.texto + ' ' + moneda(pos.diferencia) : pos.texto;
+    var tdPos = elemento('td');
+    tdPos.setAttribute('data-label', 'Posición');
+    tdPos.appendChild(elemento('span', 'badge ' + (CLASE_POSICION[pos.clave] || 'badge--neutro'), texto));
+    tr.appendChild(tdPos);
 
     return tr;
   }
 
-  function contarTendencias(productos, tipo) {
-    return productos.filter(function (p) {
-      return COMPETIDORES.some(function (key) {
-        return p.competidores[key].tendencia === tipo;
-      });
-    }).length;
-  }
-
-  function render(datos) {
-    var tbody = document.getElementById('tabla-body');
+  function mensajeTabla(texto) {
+    var tbody = $('tabla-body');
     tbody.innerHTML = '';
-    datos.productos.forEach(function (producto) {
-      tbody.appendChild(fila(producto));
-    });
-
-    document.getElementById('ultimo-monitoreo').textContent = datos.ultimoMonitoreo;
-    document.getElementById('kpi-productos').textContent = datos.productos.length;
-    document.getElementById('kpi-bajas').textContent = contarTendencias(datos.productos, 'baja');
-    document.getElementById('kpi-alzas').textContent = contarTendencias(datos.productos, 'alza');
-    document.getElementById('kpi-mas-barato').textContent = datos.productos.filter(function (p) {
-      return posicion(p).clase !== 'badge--ok';
-    }).length;
+    var tr = document.createElement('tr');
+    var td = elemento('td', 'vacio', texto);
+    td.colSpan = 6;
+    tr.appendChild(td);
+    tbody.appendChild(tr);
   }
 
-  function conectarBotonMonitoreo() {
-    var boton = document.getElementById('btn-monitoreo');
-    var estado = document.getElementById('estado-monitoreo');
-    var textoOriginal = estado.textContent;
+  function renderVista(vista) {
+    var tbody = $('tabla-body');
+    tbody.innerHTML = '';
+    if (!vista.productos.length) {
+      mensajeTabla('Todavía no hay productos en el catálogo.');
+    }
+    vista.productos.forEach(function (p) { tbody.appendChild(fila(p, vista.tiendas)); });
 
-    boton.addEventListener('click', function () {
-      // Fase 2: POST /api/monitoreo y refrescar la tabla con la respuesta.
-      boton.disabled = true;
-      estado.textContent = 'Esta acción se conecta al scraper en la Fase 2.';
-      window.setTimeout(function () {
-        boton.disabled = false;
-        estado.textContent = textoOriginal;
-      }, 2500);
-    });
+    $('ultimo-monitoreo').textContent = fecha(vista.ultimoMonitoreo);
+    $('kpi-productos').textContent = vista.resumen.productos;
+    $('kpi-bajas').textContent = vista.resumen.conBajas;
+    $('kpi-alzas').textContent = vista.resumen.conAlzas;
+    $('kpi-mas-barato').textContent = vista.resumen.noSomosMasBaratos;
+  }
+
+  function cargarProductos() {
+    return pedirJson('/api/productos')
+      .then(renderVista)
+      .catch(function () {
+        mensajeTabla('No se pudieron cargar los precios. Intenta recargar la página en un momento.');
+      });
+  }
+
+  // ---------------------------------------------------------------------
+  // Botón "Ejecutar monitoreo ahora"
+  // ---------------------------------------------------------------------
+
+  function pintarBoton(texto, habilitado, ocupado) {
+    var boton = $('btn-monitoreo');
+    boton.disabled = !habilitado;
+    boton.classList.toggle('btn--ocupado', Boolean(ocupado));
+    boton.setAttribute('aria-busy', ocupado ? 'true' : 'false');
+    $('btn-monitoreo-texto').textContent = texto;
+  }
+
+  function pintarUltimaCorrida(corrida) {
+    var p = $('ultima-corrida');
+    if (!corrida) { p.hidden = true; return; }
+    var resultado = corrida.estado !== 'completed' ? 'en curso'
+      : corrida.conclusion === 'success' ? 'completada' : 'con error';
+    var origen = corrida.evento === 'schedule' ? 'automática' : 'manual';
+    p.textContent = '';
+    p.appendChild(document.createTextNode('Última corrida ' + origen + ' ' + resultado + ', ' + hace(corrida.creada) + ' · '));
+    var enlace = elemento('a', null, 'ver en GitHub');
+    enlace.href = corrida.url;
+    enlace.target = '_blank';
+    enlace.rel = 'noopener noreferrer';
+    p.appendChild(enlace);
+    p.hidden = false;
+  }
+
+  function iniciarCuentaRegresiva(segundos) {
+    window.clearInterval(temporizadorCuenta);
+    var restantes = segundos;
+    pintarBoton('Disponible en ' + mmss(restantes), false, false);
+    temporizadorCuenta = window.setInterval(function () {
+      restantes -= 1;
+      if (restantes <= 0) {
+        window.clearInterval(temporizadorCuenta);
+        pintarBoton('Ejecutar monitoreo ahora', true, false);
+        return;
+      }
+      pintarBoton('Disponible en ' + mmss(restantes), false, false);
+    }, 1000);
+  }
+
+  function aplicarEstado(estado) {
+    var nota = $('estado-monitoreo');
+    window.clearInterval(temporizadorCuenta);
+    pintarUltimaCorrida(estado.ultimaCorrida);
+
+    var activo = estado.estado === 'en_progreso' || estado.estado === 'en_cola';
+
+    if (!estado.disponible) {
+      pintarBoton('Ejecutar monitoreo ahora', false, false);
+      nota.textContent = 'El monitoreo manual no está disponible por ahora. El automático corre cada 6 horas.';
+    } else if (activo) {
+      pintarBoton(estado.estado === 'en_cola' ? 'Monitoreo en cola…' : 'Monitoreo en progreso…', false, true);
+      nota.textContent = 'Revisando precios en GigaBazar y ElectroExpress. La tabla se actualiza sola al terminar.';
+    } else if (estado.cooldownSegundos > 0) {
+      iniciarCuentaRegresiva(estado.cooldownSegundos);
+      nota.textContent = 'Para no saturar a las tiendas, el monitoreo manual se puede ejecutar una vez cada pocos minutos.';
+    } else {
+      pintarBoton('Ejecutar monitoreo ahora', true, false);
+      nota.textContent = 'El monitoreo automático corre cada 6 horas.';
+    }
+
+    // Al terminar una corrida se recargan los precios.
+    if (estadoPrevio && (estadoPrevio === 'en_progreso' || estadoPrevio === 'en_cola') && !activo) {
+      cargarProductos();
+    }
+    estadoPrevio = estado.estado;
+
+    programarSondeo(activo ? SONDEO_ACTIVO_MS : SONDEO_INACTIVO_MS);
+  }
+
+  function programarSondeo(ms) {
+    window.clearTimeout(temporizadorSondeo);
+    temporizadorSondeo = window.setTimeout(consultarEstado, ms);
+  }
+
+  function consultarEstado() {
+    // Pestaña en segundo plano: no gastar peticiones; se retoma al volver.
+    if (document.hidden) { programarSondeo(SONDEO_ACTIVO_MS); return; }
+    pedirJson('/api/monitoreo')
+      .then(aplicarEstado)
+      .catch(function () {
+        $('estado-monitoreo').textContent = 'No se pudo consultar el estado del monitoreo.';
+        programarSondeo(SONDEO_INACTIVO_MS);
+      });
+  }
+
+  function ejecutarMonitoreo() {
+    pintarBoton('Iniciando…', false, true);
+    pedirJson('/api/monitoreo', { method: 'POST' })
+      .then(function (respuesta) {
+        aplicarEstado({
+          disponible: true,
+          estado: respuesta.estado,
+          cooldownSegundos: respuesta.cooldownSegundos,
+          ultimaCorrida: null
+        });
+      })
+      .catch(function (error) {
+        $('estado-monitoreo').textContent = error.message;
+        if (error.estado === 429 && error.cuerpo && error.cuerpo.cooldownSegundos) {
+          iniciarCuentaRegresiva(error.cuerpo.cooldownSegundos);
+        } else {
+          pintarBoton('Ejecutar monitoreo ahora', true, false);
+        }
+      });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    cargarDatos().then(render);
-    conectarBotonMonitoreo();
+    $('btn-monitoreo').addEventListener('click', ejecutarMonitoreo);
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) consultarEstado();
+    });
+    cargarProductos();
+    consultarEstado();
   });
 })();
