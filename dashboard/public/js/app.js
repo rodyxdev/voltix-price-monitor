@@ -21,6 +21,11 @@
 
   var estadoPrevio = null;
   var temporizadorSondeo = null;
+  // Cada consulta de estado lleva un número. Al disparar un monitoreo se
+  // incrementa, así se descarta una respuesta de GET /api/monitoreo que salió
+  // antes del POST y llega después (volvería a pintar el botón habilitado).
+  var versionEstado = 0;
+  var disparando = false;
   var temporizadorCuenta = null;
 
   // ---------------------------------------------------------------------
@@ -250,8 +255,13 @@
     // volver. La primera consulta (forzar) se hace siempre, para no dejar la
     // página en "Consultando…" si se abrió en una pestaña de fondo.
     if (document.hidden && forzar !== true) { programarSondeo(SONDEO_ACTIVO_MS); return; }
+    // Durante el POST el estado lo pinta ejecutarMonitoreo() con su respuesta.
+    if (disparando) return;
+    var version = versionEstado;
     pedirJson('/api/monitoreo')
-      .then(aplicarEstado)
+      .then(function (estado) {
+        if (version === versionEstado) aplicarEstado(estado);
+      })
       .catch(function () {
         $('estado-monitoreo').textContent = 'No se pudo consultar el estado del monitoreo.';
         programarSondeo(SONDEO_INACTIVO_MS);
@@ -259,9 +269,14 @@
   }
 
   function ejecutarMonitoreo() {
+    if (disparando) return;
+    disparando = true;
+    versionEstado += 1;
+    window.clearTimeout(temporizadorSondeo);
     pintarBoton('Iniciando…', false, true);
     pedirJson('/api/monitoreo', { method: 'POST' })
       .then(function (respuesta) {
+        disparando = false;
         aplicarEstado({
           disponible: true,
           estado: respuesta.estado,
@@ -270,6 +285,8 @@
         });
       })
       .catch(function (error) {
+        disparando = false;
+        programarSondeo(SONDEO_INACTIVO_MS);
         $('estado-monitoreo').textContent = error.message;
         if (error.estado === 429 && error.cuerpo && error.cuerpo.cooldownSegundos) {
           iniciarCuentaRegresiva(error.cuerpo.cooldownSegundos);
