@@ -9,7 +9,8 @@
 'use strict';
 
 // En Vercel no hay .env: las variables llegan del entorno y dotenv no hace nada.
-require('dotenv').config({ quiet: true });
+// Ruta fija a dashboard/.env para que funcione sin importar desde dónde se arranque.
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env'), quiet: true });
 
 function limpio(valor) {
   return String(valor || '').trim();

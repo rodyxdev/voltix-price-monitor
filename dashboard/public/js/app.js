@@ -245,9 +245,11 @@
     temporizadorSondeo = window.setTimeout(consultarEstado, ms);
   }
 
-  function consultarEstado() {
-    // Pestaña en segundo plano: no gastar peticiones; se retoma al volver.
-    if (document.hidden) { programarSondeo(SONDEO_ACTIVO_MS); return; }
+  function consultarEstado(forzar) {
+    // Pestaña en segundo plano: el sondeo no gasta peticiones y se retoma al
+    // volver. La primera consulta (forzar) se hace siempre, para no dejar la
+    // página en "Consultando…" si se abrió en una pestaña de fondo.
+    if (document.hidden && forzar !== true) { programarSondeo(SONDEO_ACTIVO_MS); return; }
     pedirJson('/api/monitoreo')
       .then(aplicarEstado)
       .catch(function () {
@@ -283,6 +285,6 @@
       if (!document.hidden) consultarEstado();
     });
     cargarProductos();
-    consultarEstado();
+    consultarEstado(true);
   });
 })();
