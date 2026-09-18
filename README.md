@@ -6,8 +6,19 @@ gadgets. Revisa periódicamente los precios de dos tiendas "competidoras"
 de terceros), guarda el historial en Supabase y muestra un dashboard con
 tendencias y reportes Excel/PDF descargables.
 
-> Proyecto 6 del portafolio freelance. **Estado: Fase 3** (tiendas dinámicas,
-> precios simulados y deploy en Vercel).
+> Proyecto 6 del portafolio freelance. **Estado: Fase 3 completada**, en
+> producción.
+
+## En producción
+
+| App | URL |
+| --- | --- |
+| Dashboard de Voltix | https://voltix-dashboard.vercel.app |
+| GigaBazar (competidor ficticio) | https://gigabazar.vercel.app |
+| ElectroExpress (competidor ficticio) | https://electroexpress.vercel.app |
+
+Ciclo automático (UTC): simulación de precios a las :30 de las 5, 11, 17 y 23 h;
+monitoreo cada 6 h (0, 6, 12, 18 h); restauración de la demo a las 06:30.
 
 ## Arquitectura
 
@@ -80,7 +91,7 @@ cd scraper && python -m unittest discover -s tests -t .
 | --- | --- | --- |
 | 1 | Estructura, tiendas ficticias, dashboard estático, scraper de prueba | Hecha |
 | 2 | Supabase + RLS, snapshots con emparejamiento por SKU, cron de monitoreo y restauración, botón "Ejecutar ahora" con cooldown, reportes Excel/PDF en streaming, manejo de errores y cabeceras de seguridad | Hecha |
-| 3 | Tiendas como apps Express con precios en Supabase, simulación de precios, deploy de los 3 proyectos en Vercel, pasada de seguridad final | En curso |
+| 3 | Tiendas como apps Express con precios en Supabase, simulación de precios, deploy de los 3 proyectos en Vercel, pasada de seguridad final | Hecha |
 
 ## Stack
 
@@ -91,6 +102,14 @@ cd scraper && python -m unittest discover -s tests -t .
 - **Ejecución programada:** GitHub Actions
 - **Deploy:** Vercel, tres proyectos del mismo repo (`dashboard`,
   `competitors/gigabazar`, `competitors/electroexpress`)
+
+## Deploy
+
+Tres proyectos de Vercel sobre este repo, cada uno con su Root Directory
+(`dashboard`, `competitors/gigabazar`, `competitors/electroexpress`) y las
+variables `SUPABASE_URL` + `SUPABASE_ANON_KEY` (el dashboard además usa
+`VOLTIX_GITHUB_TOKEN` y `VOLTIX_COOLDOWN_MINUTOS`). Ninguno tiene la service
+role: esa solo vive en los secrets de GitHub Actions.
 
 ## Nota legal
 
